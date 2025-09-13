@@ -10,10 +10,11 @@ Visualize Hack Club hackathon data from Airtable on a 3D globe using Globe.GL. T
       - Counterspell = purple
       - Daydream = blue
    - Heatmap: aggregated density (brighter = more attendees)
-   - Toggle between Bars and Heatmap from the UI
+   - Toggle between Bars and Heatmap from the UI or via URL params
 - Interaction
    - Auto-rotates when idle; rotation pauses while hovering over bars/points
    - Hover labels show name and attendees (when available)
+   - Filter visibility and sizing for Daydream from the UI or via URL params
 - Backend API with caching
    - Node.js/Express server proxies Airtable and caches responses in-memory for 10 minutes to reduce API calls
 - Dockerized for simple local run and Coolify deployment
@@ -36,6 +37,19 @@ docker-compose up --build -d
 
 1. Open the app: <http://localhost:3000>
 
+### URL parameters
+
+You can control the initial view and Daydream behavior via URL query params (the UI keeps the URL in sync without reloads):
+
+- `view`: `bars` | `heatmap`
+   - Example: `?view=heatmap`
+- `showDaydream`: `true|false` (default `true`)
+   - Example: `?showDaydream=false` (hides Daydream events entirely)
+- `useProjected`: `true|false` (default `false`) — when `true`, Daydream uses Airtable’s attendees count for heights/weights; when `false`, Daydream counts are treated as 1
+   - Example: `?useProjected=true`
+
+Combine them as needed: `?view=bars&showDaydream=false&useProjected=true`
+
 ## Architecture
 
 - Backend: `backend/` (Node.js + Express)
@@ -43,7 +57,10 @@ docker-compose up --build -d
    - Returns JSON array of records: `{ name, lat, lng, type, attendees }`
    - Caching: in-memory for 10 minutes (reduces Airtable API usage)
 - Frontend: `frontend/` (React + Globe.GL)
-   - Default Bars view, toggle Heatmap view via top-right buttons
+   - Default Bars view; toggle Heatmap view via top-right buttons or `?view=heatmap`
+   - Daydream controls:
+      - Visibility: `?showDaydream=true|false` (also a UI checkbox)
+      - Sizing toggle: `?useProjected=true|false` (also a UI checkbox labelled “Use Daydream attendees”)
    - Uses `REACT_APP_API_BASE` when present; in Docker Compose it points to `http://backend:4000`
 
 ### Sample API response
@@ -68,7 +85,11 @@ docker-compose up --build -d
 ```
 
 Notes:
+
 - `lat`/`lng`/`attendees` are normalized to numbers by the backend; missing `attendees` defaults to `1` so it still renders.
+- Daydream sizing semantics:
+   - When “Use Daydream attendees” is OFF or `?useProjected=false`, Daydream count is treated as `1`.
+   - When ON or `?useProjected=true`, Daydream count uses Airtable’s `attendees` field.
 
 ## Deploying to Coolify
 
