@@ -6,6 +6,7 @@ import cors from 'cors';
 const app = express();
 app.use(cors());
 const PORT = process.env.PORT || 4000;
+const ADMIN_TOKEN = process.env.ADMIN_TOKEN;
 
 // Simple in-memory cache
 let cache = {
@@ -32,7 +33,9 @@ async function fetchAirtableRecords() {
     lat: r.fields.lat ? Number(r.fields.lat) : null,
     lng: r.fields.lng ? Number(r.fields.lng) : null,
     type: r.fields.type,
-    attendees: r.fields.attendees ? Number(r.fields.attendees) : 1
+    attendees: r.fields.attendees ? Number(r.fields.attendees) : 1,
+    // Optional projected attendees for Daydream (or other types if provided)
+    projectedAttendees: r.fields.projectedAttendees ? Number(r.fields.projectedAttendees) : null
   }));
 }
 
@@ -47,6 +50,23 @@ app.get('/api/records', async (req, res) => {
     res.json(records);
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch records' });
+  }
+});
+// Authenticated refresh endpoint to clear and warm cache
+app.post('/api/refresh', async (req, res) => {
+  try {
+    const auth = req.headers['authorization'] || '';
+    const token = auth.startsWith('Bearer ') ? auth.slice(7) : null;
+    if (!ADMIN_TOKEN || token !== ADMIN_TOKEN) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    // Clear cache and refetch
+    cache = { data: null, timestamp: 0 };
+    const records = (await fetchAirtableRecords()).filter(r => typeof r.lat === 'number' && typeof r.lng === 'number');
+    cache = { data: records, timestamp: Date.now() };
+    return res.json({ ok: true, count: records.length, lastUpdated: cache.timestamp });
+  } catch (e) {
+    return res.status(500).json({ error: 'Refresh failed' });
   }
 });
 // Status endpoint for cache metadata

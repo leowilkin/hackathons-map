@@ -10,6 +10,7 @@ const TYPE_COLORS = {
 function GlobeMap({ records }) {
   const globeRef = useRef(null);
   const [view, setView] = useState('bars'); // 'bars' | 'heatmap'
+  const [useProjected, setUseProjected] = useState(false); // include Daydream projected data
 
   // Initialize globe once
   useEffect(() => {
@@ -22,19 +23,18 @@ function GlobeMap({ records }) {
     if (typeof g.barLat === 'function') {
       g.barLat('lat')
         .barLng('lng')
-        .barColor(r => TYPE_COLORS[r.type] || 'gray')
-        .barLabel(r => `${r.name}${r.attendees ? ` (${r.attendees} attendees)` : ''}`);
+        .barColor(r => TYPE_COLORS[r.type] || 'gray');
     } else {
       g.pointLat('lat')
         .pointLng('lng')
-        .pointColor(r => TYPE_COLORS[r.type] || 'gray')
-        .pointLabel(r => `${r.name}${r.attendees ? ` (${r.attendees} attendees)` : ''}`);
+        .pointColor(r => TYPE_COLORS[r.type] || 'gray');
     }
     // Configure heatmap accessors if available
     if (typeof g.heatmapsData === 'function') {
       g.heatmapPointLat('lat')
         .heatmapPointLng('lng')
-        .heatmapPointWeight('attendees')
+        // Initial weight; will be overridden by toggle-aware logic below
+        .heatmapPointWeight(r => (r.attendees || 1))
         .heatmapTopAltitude(0.65)
         .heatmapsTransitionDuration(1200);
     }
@@ -67,8 +67,34 @@ function GlobeMap({ records }) {
   useEffect(() => {
     if (!globeRef.current) return;
     const g = globeRef.current;
-    const scaleAltitude = r => Math.min(0.5, ((r.attendees || 1) / 300));
+    // Sizing follows toggle:
+    // - Daydream: 1 when toggle OFF; when ON use Airtable's attendees field.
+    // - Scrapyard/Counterspell: always use real attendees.
+    const getCount = r => {
+      if (r.type === 'Daydream') {
+        if (!useProjected) return 1;
+        return (r.attendees || 1);
+      }
+      return r.attendees || 1;
+    };
+  const scaleAltitude = r => Math.min(0.5, (getCount(r) / 300));
     const filtered = records.filter(r => typeof r.lat === 'number' && typeof r.lng === 'number');
+
+    // Update labels and heatmap weights when toggle changes
+    const labelFn = r => {
+      if (r.type === 'Daydream') {
+        if (useProjected) {
+          const count = (r.attendees || 1);
+          return `${r.name} (${count} ${count === 1 ? 'attendee' : 'attendees'})`;
+        }
+        return `${r.name} (1 participant)`;
+      }
+      const count = r.attendees || 1;
+      return `${r.name} (${count} ${count === 1 ? 'attendee' : 'attendees'})`;
+    };
+    if (typeof g.barLabel === 'function') g.barLabel(labelFn);
+    if (typeof g.pointLabel === 'function') g.pointLabel(labelFn);
+  if (typeof g.heatmapPointWeight === 'function') g.heatmapPointWeight(r => getCount(r));
 
     if (view === 'heatmap' && typeof g.heatmapsData === 'function') {
       // Clear bars/points and show heatmap
@@ -84,7 +110,7 @@ function GlobeMap({ records }) {
         g.pointAltitude(scaleAltitude).pointsData(filtered);
       }
     }
-  }, [records, view]);
+  }, [records, view, useProjected]);
 
   return (
     <div style={{ position: 'relative', width: '100vw', height: '100vh' }}>
@@ -139,6 +165,20 @@ function GlobeMap({ records }) {
             fontWeight: 600
           }}
         >Heatmap</button>
+        <label style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 6,
+          background: 'rgba(255,255,255,0.6)',
+          color: '#111',
+          padding: '6px 10px',
+          borderRadius: 6,
+          fontWeight: 600,
+          cursor: 'pointer'
+        }}>
+          <input type="checkbox" checked={useProjected} onChange={e => setUseProjected(e.target.checked)} style={{ marginRight: 6 }} />
+          Use Daydream attendees
+        </label>
       </div>
       {/* Legend / Callout */}
       <div
@@ -158,7 +198,9 @@ function GlobeMap({ records }) {
         {view === 'bars' ? (
           <>
             <div style={{ fontWeight: 600, marginBottom: 6 }}>Bigger bar = more attendees.</div>
-            <div style={{ opacity: 0.9, marginBottom: 6 }}>Daydream attendee counts are inconclusive, so heights may be minimal or missing.</div>
+            <div style={{ opacity: 0.9, marginBottom: 6 }}>
+              Heights use real counts for Scrapyard/Counterspell. Daydream uses Airtable’s attendee count when toggled on; otherwise it is shown as 1.
+            </div>
             <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                 <span style={{ width: 10, height: 10, background: 'green', display: 'inline-block', borderRadius: 2 }} />
@@ -181,8 +223,10 @@ function GlobeMap({ records }) {
         ) : (
           <>
             <div style={{ fontWeight: 600, marginBottom: 6 }}>Heatmap: brighter = more attendees.</div>
-            <div style={{ opacity: 0.9, marginBottom: 6 }}>Aggregated density of hack clubbers at hackathons.</div>
-            <div style={{ opacity: 0.85 }}>Note: Some Daydream entries lack attendee counts; heatmap weights default to 1 for missing values.</div>
+            <div style={{ opacity: 0.9, marginBottom: 6 }}>
+              Aggregated density; Daydream uses Airtable’s attendee count when toggled on, else 1.
+            </div>
+            <div style={{ opacity: 0.85 }}>Note: Some entries may lack counts; weights default to 1 when missing.</div>
           </>
         )}
       </div>
