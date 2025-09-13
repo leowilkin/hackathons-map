@@ -49,6 +49,15 @@ app.get('/api/records', async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch records' });
   }
 });
+// Status endpoint for cache metadata
+app.get('/api/status', (req, res) => {
+  res.json({
+    lastUpdated: cache.timestamp || 0,
+    lastUpdatedIso: cache.timestamp ? new Date(cache.timestamp).toISOString() : null,
+    count: Array.isArray(cache.data) ? cache.data.length : 0,
+    cacheTtlMs: CACHE_TTL
+  });
+});
 
 app.listen(PORT, () => {
   console.log(`Backend running on port ${PORT}`);

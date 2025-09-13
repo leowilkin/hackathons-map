@@ -192,6 +192,7 @@ function GlobeMap({ records }) {
 
 function App() {
   const [records, setRecords] = useState([]);
+  const [status, setStatus] = useState(null);
   useEffect(() => {
     const API_BASE = process.env.REACT_APP_API_BASE || ((window?.location?.protocol && window?.location?.hostname)
       ? `${window.location.protocol}//${window.location.hostname}:4000`
@@ -199,8 +200,39 @@ function App() {
     fetch(`${API_BASE}/api/records`)
       .then(res => res.json())
       .then(setRecords);
+    fetch(`${API_BASE}/api/status`).then(r => r.json()).then(setStatus).catch(() => {});
   }, []);
-  return <GlobeMap records={records} />;
+  return (
+    <>
+      <GlobeMap records={records} />
+      <div
+        style={{
+          position: 'fixed',
+          bottom: 10,
+          left: 12,
+          right: 12,
+          display: 'flex',
+          justifyContent: 'space-between',
+          color: '#ccc',
+          fontSize: 12,
+          pointerEvents: 'none'
+        }}
+      >
+        <div style={{ pointerEvents: 'auto' }}>
+          {status?.lastUpdated ? (
+            <>Last updated: {new Date(status.lastUpdated).toLocaleString()}</>
+          ) : (
+            <>Last updated: —</>
+          )}
+        </div>
+        <div style={{ pointerEvents: 'auto', textAlign: 'right' }}>
+          Built with <span style={{ color: '#ff6b6b' }}>&lt;3</span> by <a href="https://leowilkin.com" target="_blank" rel="noreferrer" style={{ color: '#fff' }}>Leo</a> @ Hack Club
+          {' '}•{' '}
+          <a href="https://github.com/leowilkin/hackathons-map" target="_blank" rel="noreferrer" style={{ color: '#fff' }}>Open source</a>
+        </div>
+      </div>
+    </>
+  );
 }
 
 export default App;
