@@ -3,13 +3,21 @@ services:
     build: ./backend
     env_file:
       - ./backend/.env
+    expose:
+      - "4000"
+    profiles:
+      - local
     ports:
       - "4000:4000"
   frontend:
     build: ./frontend
-    ports:
-      - "3000:3000"
+    expose:
+      - "3000"
     depends_on:
       - backend
     environment:
       - REACT_APP_API_BASE=http://backend:4000
+    profiles:
+      - local
+    ports:
+      - "3000:3000"
