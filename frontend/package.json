@@ -1,0 +1,16 @@
+{
+  "name": "hackathons-map-frontend",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+  "globe.gl": "2.30.0",
+  "three": "0.152.2",
+    "react-scripts": "5.0.1"
+  },
+  "scripts": {
+    "start": "npx serve -s build",
+    "build": "react-scripts build"
+  }
+}
