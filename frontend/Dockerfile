@@ -6,6 +6,9 @@ COPY package.json package-lock.json* ./
 RUN npm ci || npm install
 # Copy source
 COPY . .
+# Allow build-time API base override for CRA
+ARG REACT_APP_API_BASE=http://backend:4000
+ENV REACT_APP_API_BASE=$REACT_APP_API_BASE
 RUN npm run build
 
 FROM node:20-alpine

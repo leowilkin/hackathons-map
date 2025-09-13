@@ -83,6 +83,26 @@ You can deploy the whole stack using this repo’s `docker-compose.yml`:
    - Frontend: 3000 (public)
    - Backend: 4000 (can be internal/private if the frontend communicates within the network)
 
+### Frontend calling backend via public domain
+
+Because the frontend is a static build, the API base URL is baked at build time. If your frontend and backend have separate public domains in Coolify (e.g.,
+
+- Backend: `https://ewcs4wskc8c08ookkocssg84.a.selfhosted.hackclub.com`
+- Frontend: `https://agsc8g8g88c8ows4ok0s84ck.a.selfhosted.hackclub.com`
+
+build the frontend with `REACT_APP_API_BASE` pointing to the backend’s public URL. You can pass this as a build arg via Compose:
+
+```yaml
+services:
+   frontend:
+      build:
+         context: ./frontend
+         args:
+            REACT_APP_API_BASE: https://ewcs4wskc8c08ookkocssg84.a.selfhosted.hackclub.com
+```
+
+Alternatively, if both services share an internal network and you expose only the frontend publicly, you can keep the default `http://backend:4000` and let Coolify handle internal routing.
+
 ## Troubleshooting
 
 - No data on globe
