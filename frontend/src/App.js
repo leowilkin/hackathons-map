@@ -43,7 +43,7 @@ function GlobeMap({ records }) {
     const controls = g.controls();
     if (controls) {
       controls.autoRotate = true;
-      controls.autoRotateSpeed = 0.6; // tweak speed
+      controls.autoRotateSpeed = 0.4; // slower spin
     }
 
     // Pause rotation on hover over data items
