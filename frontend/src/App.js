@@ -11,6 +11,7 @@ function GlobeMap({ records }) {
   const globeRef = useRef(null);
   const [view, setView] = useState('bars'); // 'bars' | 'heatmap'
   const [useProjected, setUseProjected] = useState(false); // include Daydream projected data
+  const [showDaydream, setShowDaydream] = useState(true); // toggle visibility of Daydream events
 
   // Initialize globe once
   useEffect(() => {
@@ -63,6 +64,31 @@ function GlobeMap({ records }) {
     return () => globeRef.current && globeRef.current.dispose && globeRef.current.dispose();
   }, []);
 
+  // Read initial settings from URL params
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const initialView = params.get('view');
+      const daydreamParam = params.get('showDaydream');
+      const projectedParam = params.get('useProjected');
+      if (initialView === 'bars' || initialView === 'heatmap') setView(initialView);
+      if (daydreamParam != null) setShowDaydream(!(daydreamParam.toLowerCase() === 'false' || daydreamParam === '0'));
+      if (projectedParam != null) setUseProjected(!(projectedParam.toLowerCase() === 'false' || projectedParam === '0'));
+    } catch {}
+  }, []);
+
+  // Keep URL params in sync with UI state
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      params.set('view', view);
+      params.set('showDaydream', String(showDaydream));
+      params.set('useProjected', String(useProjected));
+      const newUrl = `${window.location.pathname}?${params.toString()}${window.location.hash || ''}`;
+      window.history.replaceState(null, '', newUrl);
+    } catch {}
+  }, [view, showDaydream, useProjected]);
+
   // Update data when records change
   useEffect(() => {
     if (!globeRef.current) return;
@@ -78,7 +104,10 @@ function GlobeMap({ records }) {
       return r.attendees || 1;
     };
   const scaleAltitude = r => Math.min(0.5, (getCount(r) / 300));
-    const filtered = records.filter(r => typeof r.lat === 'number' && typeof r.lng === 'number');
+    // Filter records by coordinates and Daydream visibility
+    const filtered = records
+      .filter(r => typeof r.lat === 'number' && typeof r.lng === 'number')
+      .filter(r => showDaydream || r.type !== 'Daydream');
 
     // Update labels and heatmap weights when toggle changes
     const labelFn = r => {
@@ -110,7 +139,7 @@ function GlobeMap({ records }) {
         g.pointAltitude(scaleAltitude).pointsData(filtered);
       }
     }
-  }, [records, view, useProjected]);
+  }, [records, view, useProjected, showDaydream]);
 
   return (
     <div style={{ position: 'relative', width: '100vw', height: '100vh' }}>
@@ -178,6 +207,20 @@ function GlobeMap({ records }) {
         }}>
           <input type="checkbox" checked={useProjected} onChange={e => setUseProjected(e.target.checked)} style={{ marginRight: 6 }} />
           Use Daydream attendees
+        </label>
+        <label style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 6,
+          background: 'rgba(255,255,255,0.6)',
+          color: '#111',
+          padding: '6px 10px',
+          borderRadius: 6,
+          fontWeight: 600,
+          cursor: 'pointer'
+        }}>
+          <input type="checkbox" checked={showDaydream} onChange={e => setShowDaydream(e.target.checked)} style={{ marginRight: 6 }} />
+          Show Daydream events
         </label>
       </div>
       {/* Legend / Callout */}
