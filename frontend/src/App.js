@@ -158,6 +158,7 @@ function GlobeMap({ records }) {
         {view === 'bars' ? (
           <>
             <div style={{ fontWeight: 600, marginBottom: 6 }}>Bigger bar = more attendees.</div>
+            <div style={{ opacity: 0.9, marginBottom: 6 }}>Daydream attendee counts are inconclusive, so heights may be minimal or missing.</div>
             <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                 <span style={{ width: 10, height: 10, background: 'green', display: 'inline-block', borderRadius: 2 }} />
@@ -180,7 +181,8 @@ function GlobeMap({ records }) {
         ) : (
           <>
             <div style={{ fontWeight: 600, marginBottom: 6 }}>Heatmap: brighter = more attendees.</div>
-            <div style={{ opacity: 0.9 }}>Aggregated density of hack clubbers at hackathons.</div>
+            <div style={{ opacity: 0.9, marginBottom: 6 }}>Aggregated density of hack clubbers at hackathons.</div>
+            <div style={{ opacity: 0.85 }}>Note: Some Daydream entries lack attendee counts; heatmap weights default to 1 for missing values.</div>
           </>
         )}
       </div>
